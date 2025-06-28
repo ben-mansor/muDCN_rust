@@ -1,0 +1,12 @@
+[package]
+name = "udcn-daemon"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+udcn-common = { path = "../udcn-common" }
+
+[[bin]]
+name = "udcn-daemon"
+path = "src/main.rs"
+
