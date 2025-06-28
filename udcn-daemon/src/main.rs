@@ -5,6 +5,8 @@ mod pit;
 use cs::ContentStore;
 use fib::Fib;
 use pit::Pit;
+use aya::programs::Xdp;
+use aya::{Bpf, programs::XdpFlags};
 use std::sync::{Arc, Mutex};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::UnixListener;
@@ -12,6 +14,9 @@ use tokio::net::UnixListener;
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
     println!("udcn-daemon starting...");
+    if let Err(e) = attach_xdp() {
+        eprintln!("failed to attach xdp program: {e}");
+    }
     let _ = std::fs::remove_file("/tmp/udcn.sock");
     let listener = UnixListener::bind("/tmp/udcn.sock")?;
 
@@ -29,7 +34,6 @@ async fn main() -> std::io::Result<()> {
             let mut line = String::new();
             while reader.read_line(&mut line).await.unwrap_or(0) > 0 {
                 let parts: Vec<String> = line
-                    .trim()
                     .split_whitespace()
                     .map(|s| s.to_string())
                     .collect();
@@ -49,16 +53,16 @@ async fn main() -> std::io::Result<()> {
                         } else if parts.get(1).map(|s| s.as_str()) == Some("list") {
                             let entries = fib.lock().unwrap().list();
                             for (p, f) in entries {
-                                let _ = w.write_all(format!("{} -> {}\n", p, f).as_bytes()).await;
+                                let line = format!("{p} -> {f}\n");
+                                let _ = w.write_all(line.as_bytes()).await;
                             }
                         }
                     }
                     "cs" => {
                         if parts.get(1).map(|s| s.as_str()) == Some("stats") {
                             let len = cs.lock().unwrap().len();
-                            let _ = w
-                                .write_all(format!("CS entries: {}\n", len).as_bytes())
-                                .await;
+                            let line = format!("CS entries: {len}\n");
+                            let _ = w.write_all(line.as_bytes()).await;
                         }
                     }
                     "quit" => break,
@@ -69,4 +73,31 @@ async fn main() -> std::io::Result<()> {
             }
         });
     }
+}
+
+fn attach_xdp() -> Result<(), Box<dyn std::error::Error>> {
+    let dir = std::path::Path::new("target/bpfel-unknown-none/debug/deps");
+    let obj = std::fs::read_dir(dir)?
+        .filter_map(|e| {
+            let e = e.ok()?;
+            let name = e.file_name();
+            if name.to_string_lossy().starts_with("udcn_ebpf")
+                && name.to_string_lossy().ends_with(".o")
+            {
+                Some(e.path())
+            } else {
+                None
+            }
+        })
+        .next()
+        .ok_or("program object not found")?;
+
+    let mut bpf = Bpf::load_file(obj)?;
+    let program: &mut Xdp = bpf
+        .program_mut("xdp_pass")
+        .ok_or("program not found")?
+        .try_into()?;
+    program.load()?;
+    program.attach("lo", XdpFlags::default())?;
+    Ok(())
 }
