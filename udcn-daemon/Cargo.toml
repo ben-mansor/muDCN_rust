@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 udcn-common = { path = "../udcn-common" }
+tokio = { version = "1", features = ["full"] }
 
 [[bin]]
 name = "udcn-daemon"
