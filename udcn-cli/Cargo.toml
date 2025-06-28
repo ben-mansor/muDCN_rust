@@ -1,0 +1,16 @@
+[package]
+name = "udcn-cli"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+udcn-common = { path = "../udcn-common" }
+
+[lib]
+name = "udcn_cli"
+path = "src/lib.rs"
+
+[[bin]]
+name = "udcn"
+path = "src/main.rs"
+

@@ -1,0 +1,22 @@
+[workspace]
+members = [
+    "udcn-cli",
+    "udcn-daemon",
+    "udcn-ebpf",
+    "udcn-common",
+    "udcn-quic",
+]
+resolver = "2"
+
+[workspace.package]
+edition = "2021"
+name = "udcn-workspace"
+version = "0.1.0"
+
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"
+
