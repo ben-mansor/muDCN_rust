@@ -1,0 +1,17 @@
+version: '3'
+services:
+  forwarder:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    command: ["udcn-daemon"]
+  client:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    command: ["sleep", "infinity"]
+  server:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    command: ["sleep", "infinity"]

@@ -10,7 +10,7 @@ impl ContentStore {
     /// Create a new content store with the given capacity.
     pub fn new(capacity: usize) -> Self {
         ContentStore {
-            cache: LruCache::new(capacity.try_into().unwrap_or(16)),
+            cache: LruCache::new(capacity.max(16)),
         }
     }
 

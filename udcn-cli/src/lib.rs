@@ -1,5 +1,5 @@
 use clap::{Parser, Subcommand};
-use std::io::{self, Write};
+use std::io::{self, BufRead, Write};
 use std::os::unix::net::UnixStream;
 use std::process::Command;
 
@@ -41,27 +41,28 @@ pub fn run() {
     let cli = Cli::parse();
     match cli.command {
         Commands::Interest { name } => {
-            let msg = format!("INTEREST {name}\n");
+            let msg = format!("interest {name}\n");
             if let Err(e) = send_daemon(msg) {
                 eprintln!("failed to send interest: {e}");
             }
         }
         Commands::Publish { name } => {
-            let msg = format!("PUBLISH {name}\n");
+            let msg = format!("publish {name}\n");
             if let Err(e) = send_daemon(msg) {
                 eprintln!("failed to publish data: {e}");
             }
         }
         Commands::Fib { command } => match command {
             FibCommand::Add { prefix } => {
-                let msg = format!("FIB ADD {prefix}\n");
+                // map to a fixed face identifier for demo purposes
+                let msg = format!("fib add {prefix} local\n");
                 if let Err(e) = send_daemon(msg) {
                     eprintln!("failed to add FIB entry: {e}");
                 }
             }
         },
         Commands::Stats => {
-            if let Err(e) = send_daemon("STATS\n".to_string()) {
+            if let Err(e) = send_daemon("cs stats\n".to_string()) {
                 eprintln!("failed to request stats: {e}");
             }
         }
@@ -76,5 +77,8 @@ pub fn run() {
 fn send_daemon(msg: String) -> io::Result<()> {
     let mut stream = UnixStream::connect(SOCKET_PATH)?;
     stream.write_all(msg.as_bytes())?;
+    let mut resp = String::new();
+    std::io::BufReader::new(&mut stream).read_line(&mut resp)?;
+    print!("{resp}");
     Ok(())
 }
