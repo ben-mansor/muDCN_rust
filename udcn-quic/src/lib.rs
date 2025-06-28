@@ -8,3 +8,8 @@ impl QuicTransport {
     }
 }
 
+impl Default for QuicTransport {
+    fn default() -> Self {
+        Self::new()
+    }
+}
