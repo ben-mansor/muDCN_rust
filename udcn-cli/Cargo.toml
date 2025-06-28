@@ -5,6 +5,8 @@ edition = "2021"
 
 [dependencies]
 udcn-common = { path = "../udcn-common" }
+clap = { version = "4", features = ["derive"] }
+
 
 [lib]
 name = "udcn_cli"

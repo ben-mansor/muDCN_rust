@@ -74,5 +74,11 @@ impl QuicTransport {
     pub async fn recv_data(&mut self) -> Result<Data, Box<dyn std::error::Error>> {
         let bytes = self.recv_raw().await?;
         Ok(serde_json::from_slice(&bytes)?)
+  }
+}
+impl Default for QuicTransport {
+    fn default() -> Self {
+        Self::new()
     }
 }
+  

@@ -1,25 +1,80 @@
-use udcn_common::{Interest, Data};
+use clap::{Parser, Subcommand};
+use std::io::{self, Write};
+use std::os::unix::net::UnixStream;
+use std::process::Command;
+
+/// Path to the daemon's Unix socket.
+const SOCKET_PATH: &str = "/tmp/udcn.sock";
+
+#[derive(Parser)]
+#[command(author, version, about = "μDCN command line interface")]
+pub struct Cli {
+    #[command(subcommand)]
+    pub command: Commands,
+}
+
+#[derive(Subcommand)]
+pub enum Commands {
+    /// Express an interest for a named data object
+    Interest { name: String },
+    /// Publish named data (payload not yet implemented)
+    Publish { name: String },
+    /// Manage the Forwarding Information Base
+    Fib {
+        #[command(subcommand)]
+        command: FibCommand,
+    },
+    /// Display daemon statistics
+    Stats,
+    /// Start the forwarder daemon
+    Start,
+}
+
+#[derive(Subcommand)]
+pub enum FibCommand {
+    /// Add a prefix to the FIB
+    Add { prefix: String },
+}
 
 /// Entry point for CLI processing.
 pub fn run() {
-    let mut args = std::env::args();
-    let _program = args.next();
-    match args.next().as_deref() {
-        Some("interest") => {
-            if let Some(name) = args.next() {
-                let interest = Interest { name, nonce: 0 };
-                println!("Sending interest: {:?}", interest);
+    let cli = Cli::parse();
+    match cli.command {
+        Commands::Interest { name } => {
+            let msg = format!("INTEREST {name}\n");
+            if let Err(e) = send_daemon(msg) {
+                eprintln!("failed to send interest: {e}");
             }
         }
-        Some("publish") => {
-            if let Some(name) = args.next() {
-                let data = Data { name, payload: Vec::new() };
-                println!("Publishing data: {:?}", data);
+        Commands::Publish { name } => {
+            let msg = format!("PUBLISH {name}\n");
+            if let Err(e) = send_daemon(msg) {
+                eprintln!("failed to publish data: {e}");
             }
         }
-        _ => {
-            eprintln!("usage: udcn <interest|publish> <name>");
+        Commands::Fib { command } => match command {
+            FibCommand::Add { prefix } => {
+                let msg = format!("FIB ADD {prefix}\n");
+                if let Err(e) = send_daemon(msg) {
+                    eprintln!("failed to add FIB entry: {e}");
+                }
+            }
+        },
+        Commands::Stats => {
+            if let Err(e) = send_daemon("STATS\n".to_string()) {
+                eprintln!("failed to request stats: {e}");
+            }
+        }
+        Commands::Start => {
+            if let Err(e) = Command::new("udcn-daemon").spawn() {
+                eprintln!("failed to start daemon: {e}");
+            }
         }
     }
 }
 
+fn send_daemon(msg: String) -> io::Result<()> {
+    let mut stream = UnixStream::connect(SOCKET_PATH)?;
+    stream.write_all(msg.as_bytes())?;
+    Ok(())
+}
