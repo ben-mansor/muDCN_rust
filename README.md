@@ -12,3 +12,35 @@ Additional folders include `docker/` for container files and `demo/` for example
 
 All crates currently provide only minimal functionality but compile successfully with `cargo build --workspace`.
 
+## Usage Examples
+
+Start the daemon:
+
+```bash
+$ udcn start
+```
+
+Express an interest:
+
+```bash
+$ udcn interest /example/data
+```
+
+Publish data (payload handling not yet implemented):
+
+```bash
+$ udcn publish /example/data
+```
+
+Add a FIB entry:
+
+```bash
+$ udcn fib add /example
+```
+
+Request statistics from the daemon:
+
+```bash
+$ udcn stats
+```
+
