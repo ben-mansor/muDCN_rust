@@ -10,7 +10,6 @@ resolver = "2"
 
 [workspace.package]
 edition = "2021"
-name = "udcn-workspace"
 version = "0.1.0"
 
 
